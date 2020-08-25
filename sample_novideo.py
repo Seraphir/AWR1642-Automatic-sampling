@@ -1,4 +1,3 @@
-import cv2.cv2 as cv2
 import time
 import os
 import win32gui
@@ -20,20 +19,7 @@ def show_window_attr(hWnd):
     print('')
 
 
-# 配置摄像头和编码器
-source = 0
-cameraCapture = cv2.VideoCapture(source, cv2.CAP_DSHOW)  # 传入0代表0号摄像头
-print(cameraCapture.isOpened())
-if cameraCapture is None or not cameraCapture.isOpened():
-    print('Warning: unable to open video source: ', source)
-fps = 25  # 采集帧率设置
-frame_num = 32  # 采集帧数
-size = (int(cameraCapture.get(cv2.CAP_PROP_FRAME_WIDTH)),
-        int(cameraCapture.get(cv2.CAP_PROP_FRAME_HEIGHT)))
-fourcc = cv2.VideoWriter_fourcc("X", "V", "I", "D")
-print(size)
-
-# 获取窗口句柄
+## 获取窗口句柄
 hWndList = []
 win32gui.EnumWindows(lambda hWnd, param: param.append(hWnd), hWndList)
 hwnd = None
@@ -44,8 +30,10 @@ for h in hWndList:
         show_window_attr(h)
         hwnd = h
 
-# 开始批量采集
+## 开始批量采集
+# 文件存储路径
 store_dir = "D:\\radardata"
+# 需要连续修改的文件名
 # filetype_list=["adc_data_CP_0.bin","adc_data_CQ_0.bin","adc_data_DSP_0.bin","adc_data_LogFile.txt","adc_data_R4F_0.bin","adc_data_Raw_0.bin"]
 filetype_list=["adc_data_Raw_0.bin"]
 if not os.path.exists(store_dir):
@@ -66,9 +54,6 @@ while True:
 print("请配置好上位机")
 for idx in range(start, max_times):
     input("按下 “DCA1000 ARM” 后按回车开始第{:04d}次采集".format(idx))
-    # 配置视频输出
-    output_video = os.path.join(store_dir, "{:04d}.avi".format(idx))
-    videoWriter = cv2.VideoWriter(output_video, fourcc, fps, size)
     # 显示隐藏窗口
     if (win32gui.IsIconic(hwnd)):
         # win32gui.ShowWindow(hwnd, win32con.SW_SHOWNORMAL)
@@ -82,23 +67,10 @@ for idx in range(start, max_times):
     win32api.keybd_event(13, 0, win32con.KEYEVENTF_KEYUP, 0)  # 松开回车（ASCII 13）
     print("第{:04d}次采集开始...".format(idx))
 
-    # 采集摄像头数据并输出
-    numFramesRemaining = frame_num - 1  # 计算剩余需要采集的帧数
-    ret = True
-    while ret and numFramesRemaining:
-        t0 = time.time()
-        ret, frame = cameraCapture.read()
-        videoWriter.write(frame)
-        numFramesRemaining -= 1
-        dt = time.time() - t0
-        # cv2.imshow("0",frame)
-        # cv2.waitKey(10) # 等待下一帧（帧率过高会来不及储存，导致帧率不稳定）
-        time.sleep(max(1 / fps - dt, 0))  # 等待下一帧（帧率过高会来不及储存，导致帧率不稳定）
-
+    # 重命名指定文件
     time.sleep(3)
     for filetype in filetype_list:
         filename = os.path.join(store_dir, filetype)
         os.rename(filename, os.path.join(store_dir, "{:04d}_{}".format(idx, filetype)))
-    videoWriter.release()
+    
     print("第{:04d}次采集完成并已重命名".format(idx))
-cameraCapture.release()
